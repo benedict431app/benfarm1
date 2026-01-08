@@ -8,14 +8,13 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', os.getenv('SESSION_SECRET', 'dev-secret-key-change-in-production'))
     
     # Database - Use PostgreSQL on Render, SQLite locally
-    if os.environ.get('RENDER'):
-        DATABASE_URL = os.environ.get('DATABASE_URL')
-        if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
-            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    else:
-        DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///database.db')
+    database_url = os.getenv('DATABASE_URL', 'sqlite:///database.db')
     
-    SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    # Fix PostgreSQL URL format for Render/Railway
+    if database_url and database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    
+    SQLALCHEMY_DATABASE_URI = database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # File uploads
@@ -37,4 +36,4 @@ class Config:
     COHERE_API_KEY = os.getenv('COHERE_API_KEY')
     
     # Flask configuration
-    PREFERRED_URL_SCHEME = 'https' if os.environ.get('RENDER') else 'http'
+    PREFERRED_URL_SCHEME = 'https'
