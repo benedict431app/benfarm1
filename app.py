@@ -14,12 +14,6 @@ import base64
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Force PostgreSQL URL format for Render
-if os.environ.get('RENDER'):
-    database_url = app.config['SQLALCHEMY_DATABASE_URI']
-    if database_url and database_url.startswith('postgres://'):
-        app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace('postgres://', 'postgresql://', 1)
-
 db.init_app(app)
 
 # Initialize login manager
