@@ -5,7 +5,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 import requests
 from config import Config
-from models import db, User, InventoryItem, Customer, Sale, SaleItem, Communication, DiseaseReport, Notification, WeatherData
+from models import db, User, InventoryItem, Customer, Sale, SaleItem, Communication, DiseaseReport, Notification, WeatherData, AdminUser
 import google.generativeai as genai
 from PIL import Image
 import io
@@ -13,6 +13,9 @@ import base64
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# IMPORTANT: Add debug logging to see the database URL
+print(f"Database URL: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 db.init_app(app)
 
@@ -22,7 +25,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 # Configure Cohere
-cohere_api_key = app.config['COHERE_API_KEY']
+cohere_api_key = app.config.get('COHERE_API_KEY', '')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -31,9 +34,37 @@ def load_user(user_id):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-# Create database tables
+# Create database tables and initialize admin
 with app.app_context():
     db.create_all()
+    
+    # Create default admin user if doesn't exist
+    from models import AdminUser
+    
+    admin_email = app.config.get('ADMIN_EMAIL', 'admin@benfarming.com')
+    admin_exists = AdminUser.query.filter_by(email=admin_email).first()
+    
+    if not admin_exists:
+        admin = AdminUser(
+            email=admin_email,
+            full_name=app.config.get('ADMIN_FULL_NAME', 'System Administrator'),
+            is_super_admin=True
+        )
+        admin_password = app.config.get('ADMIN_PASSWORD', 'admin123')
+        admin.set_password(admin_password)
+        db.session.add(admin)
+        db.session.commit()
+        print("Default admin user created")
+
+# Register blueprints (make sure these modules exist)
+try:
+    from admin_routes import admin_bp
+    from community_routes import community_bp
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(community_bp)
+    print("Blueprints registered successfully")
+except ImportError as e:
+    print(f"Note: Some blueprints not found: {e}")
 
 @app.route('/')
 def index():
