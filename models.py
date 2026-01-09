@@ -18,14 +18,54 @@ class User(UserMixin, db.Model):
     location = db.Column(db.String(200))
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
+    bio = db.Column(db.Text)
+    experience_years = db.Column(db.Integer, default=0)
+    is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
+    # Relationships
     inventory_items = db.relationship('InventoryItem', backref='agrovet', lazy=True, cascade='all, delete-orphan')
     sales = db.relationship('Sale', backref='agrovet', lazy=True, cascade='all, delete-orphan')
     customers = db.relationship('Customer', backref='agrovet', lazy=True, cascade='all, delete-orphan')
     disease_reports = db.relationship('DiseaseReport', backref='farmer', lazy=True, cascade='all, delete-orphan')
     notifications = db.relationship('Notification', backref='user', lazy=True, cascade='all, delete-orphan')
+    posts = db.relationship('CommunityPost', backref='author', lazy=True, cascade='all, delete-orphan')
+    replies = db.relationship('CommunityReply', backref='author', lazy=True, cascade='all, delete-orphan')
+    sent_messages = db.relationship('DirectMessage', foreign_keys='DirectMessage.sender_id', backref='sender', lazy=True)
+    received_messages = db.relationship('DirectMessage', foreign_keys='DirectMessage.receiver_id', backref='receiver', lazy=True)
+    reviews = db.relationship('Review', backref='user', lazy=True, cascade='all, delete-orphan')
+    post_likes = db.relationship('PostLike', backref='user', lazy=True, cascade='all, delete-orphan')
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+    
+    def get_review_stats(self):
+        """Get user's review statistics"""
+        reviews = Review.query.filter_by(user_id=self.id).all()
+        if not reviews:
+            return {'average': 0, 'count': 0}
+        
+        total = sum(review.rating for review in reviews)
+        return {
+            'average': total / len(reviews),
+            'count': len(reviews)
+        }
+
+class AdminUser(UserMixin, db.Model):
+    """Separate admin model for better security"""
+    __tablename__ = 'admin_users'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    is_super_admin = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -147,4 +187,124 @@ class WeatherData(db.Model):
     description = db.Column(db.String(200))
     recommendations = db.Column(db.Text)
     forecast_date = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Review(db.Model):
+    """User reviews and testimonials"""
+    __tablename__ = 'reviews'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    service_type = db.Column(db.String(50))  # farming, agrovet, extension, etc.
+    helpful_count = db.Column(db.Integer, default=0)
+    verified_purchase = db.Column(db.Boolean, default=False)
+    is_featured = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(20), default='approved')  # approved, pending, rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class CommunityPost(db.Model):
+    """Community forum posts"""
+    __tablename__ = 'community_posts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50), default='general')
+    post_type = db.Column(db.String(20), default='discussion')
+    is_public = db.Column(db.Boolean, default=True)
+    is_pinned = db.Column(db.Boolean, default=False)
+    is_closed = db.Column(db.Boolean, default=False)
+    view_count = db.Column(db.Integer, default=0)
+    reply_count = db.Column(db.Integer, default=0)
+    like_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    replies = db.relationship('CommunityReply', backref='post', lazy=True, cascade='all, delete-orphan')
+    likes = db.relationship('PostLike', backref='post', lazy=True, cascade='all, delete-orphan')
+    tags = db.relationship('PostTag', backref='post', lazy=True, cascade='all, delete-orphan')
+
+class CommunityReply(db.Model):
+    """Replies to community posts"""
+    __tablename__ = 'community_replies'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('community_posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    is_solution = db.Column(db.Boolean, default=False)
+    like_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    mentions = db.relationship('ReplyMention', backref='reply', lazy=True, cascade='all, delete-orphan')
+    likes = db.relationship('ReplyLike', backref='reply', lazy=True, cascade='all, delete-orphan')
+
+class PostTag(db.Model):
+    """Tags for community posts"""
+    __tablename__ = 'post_tags'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('community_posts.id'), nullable=False)
+    tag_name = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class PostLike(db.Model):
+    """Likes for posts"""
+    __tablename__ = 'post_likes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('community_posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (db.UniqueConstraint('post_id', 'user_id', name='unique_post_like'),)
+
+class ReplyLike(db.Model):
+    """Likes for replies"""
+    __tablename__ = 'reply_likes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    reply_id = db.Column(db.Integer, db.ForeignKey('community_replies.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (db.UniqueConstraint('reply_id', 'user_id', name='unique_reply_like'),)
+
+class ReplyMention(db.Model):
+    """Mentions in replies to notify users"""
+    __tablename__ = 'reply_mentions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    reply_id = db.Column(db.Integer, db.ForeignKey('community_replies.id'), nullable=False)
+    mentioned_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False)
+
+class DirectMessage(db.Model):
+    """Private messages between users"""
+    __tablename__ = 'direct_messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class FAQ(db.Model):
+    """Frequently Asked Questions"""
+    __tablename__ = 'faqs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.String(500), nullable=False)
+    answer = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50))
+    is_featured = db.Column(db.Boolean, default=False)
+    view_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
