@@ -105,6 +105,7 @@ class PaymentRecord(db.Model):
     amount = db.Column(db.Float, default=10.0)
     status = db.Column(db.String(50), default='pending')  # pending, completed, failed
     mpesa_receipt = db.Column(db.String(100))
+    used = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
 class Customer(db.Model):
