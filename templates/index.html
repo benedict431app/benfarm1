@@ -1,14 +1,26 @@
 {% extends "components/base.html" %}
 
+{% block title %}Adiseware — AI Crop Disease Detection & Agrovet Finder for Kenyan Farmers{% endblock %}
+
 {% block content %}
 <div class="hero-section text-center py-5 bg-light">
-    <h1 class="display-4">Welcome to Adiseware</h1>
-    <p class="lead">Empowering Agriculture Through Technology</p>
-    <div class="mt-4">
-        <a href="{{ url_for('register') }}" class="btn btn-success btn-lg me-2" aria-label="Get started by registering">Get Started</a>
-        <a href="{{ url_for('login') }}" class="btn btn-outline-success btn-lg" aria-label="Login to your account">Login</a>
+    <div class="container">
+        <h1 class="display-5 mb-3">AI Crop Disease Detection for Kenyan Farmers</h1>
+        <p class="lead mb-4">
+            Adiseware is an AI-powered platform that helps farmers in Kenya detect plant diseases
+            from a photo, get treatment advice, and find nearby agrovets. Your first 3 scans are free.
+        </p>
+        <div class="mt-3">
+            <a href="{{ url_for('register') }}" class="btn btn-success btn-lg me-2">Get Started</a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-success btn-lg">Login</a>
+        </div>
+        <p class="mt-3 small text-muted">
+            <a href="{{ url_for('ai_crop_disease_detection') }}">Learn how AI crop disease detection works →</a>
+        </p>
     </div>
 </div>
+
+
 
 <div class="container my-5">
     <div class="row">
@@ -50,4 +62,16 @@
         </div>
     </div>
 </div>
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Adiseware",
+  "applicationCategory": "AgriculturalApplication",
+  "operatingSystem": "Web",
+  "url": "https://benfarm1-m7tg.onrender.com/",
+  "description": "AI-powered crop disease detection and agrovet finder for Kenyan farmers.",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "KES"}
+}|tojson }}
+</script>
 {% endblock %}
