@@ -33,11 +33,32 @@
                     </div>
                 </form>
 
+                <!-- Verification result card (shown after Phase 1) -->
+                <div id="verificationCard" class="card border-success mt-4" style="display: none;">
+                    <div class="card-header bg-success text-white">
+                        <h2 class="h5 mb-0"><i class="fas fa-check-circle" aria-hidden="true"></i> Image Verified</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">The AI identified this image as:</p>
+                        <h3 class="h4 text-success mb-3" id="verifiedPlantName">—</h3>
+                        <p class="text-muted small mb-3" id="verifiedConfidence"></p>
+                        <p class="mb-3">Is this the correct plant name?</p>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-success" id="confirmNameBtn">
+                                <i class="fas fa-check" aria-hidden="true"></i> Yes, Analyze Disease
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="editNameBtn">
+                                <i class="fas fa-pen" aria-hidden="true"></i> No, Let Me Edit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="loadingIndicator" class="text-center mt-4" style="display: none;" role="status" aria-live="polite">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Analyzing plant image...</span>
                     </div>
-                    <p class="mt-2">Analyzing your plant image... This may take a moment.</p>
+                    <p class="mt-2" id="loadingText">Analyzing your plant image... This may take a moment.</p>
                 </div>
 
                 <div id="resultsContainer" class="mt-4" style="display: none;">
@@ -107,12 +128,23 @@ document.getElementById('plant_image').addEventListener('change', function(e) {
 
 const form = document.getElementById('diseaseForm');
 const loadingIndicator = document.getElementById('loadingIndicator');
+const loadingText = document.getElementById('loadingText');
 const resultsContainer = document.getElementById('resultsContainer');
 const analyzeButton = document.getElementById('analyzeButton');
+const verificationCard = document.getElementById('verificationCard');
+const verifiedPlantName = document.getElementById('verifiedPlantName');
+const verifiedConfidence = document.getElementById('verifiedConfidence');
+const confirmNameBtn = document.getElementById('confirmNameBtn');
+const editNameBtn = document.getElementById('editNameBtn');
+
+// Holds the verified plant name between Phase 1 and Phase 2
+let pendingPlantName = '';
 
 function submitDetection(formData) {
+    loadingText.textContent = 'Analyzing your plant image... This may take a moment.';
     loadingIndicator.style.display = 'block';
     resultsContainer.style.display = 'none';
+    verificationCard.style.display = 'none';
     analyzeButton.disabled = true;
 
     fetch('/farmer/detect-disease', {
@@ -193,20 +225,22 @@ function handlePayment(formData) {
             return;
         }
         alert('Check your phone and enter your M-PESA PIN to complete the KES 10 payment. Once done, click OK to analyze your plant.');
-        // After the user confirms M-PESA, resubmit.
-        // The backend will consume the completed PaymentRecord on this retry.
         setTimeout(() => submitDetection(formData), 3000);
     })
     .catch(() => alert('Payment service unavailable. Please try again.'));
 }
 
+// Phase 1: verify the image and plant name
 form.addEventListener('submit', function(e) {
     e.preventDefault();
-    const formData = new FormData(this);
 
-    // Phase 1: Verify image and plant name
+    verificationCard.style.display = 'none';
+    resultsContainer.style.display = 'none';
+    loadingText.textContent = 'Verifying image and identifying the plant...';
     loadingIndicator.style.display = 'block';
     analyzeButton.disabled = true;
+
+    const formData = new FormData(this);
 
     fetch('/farmer/verify-plant', {
         method: 'POST',
@@ -230,34 +264,40 @@ form.addEventListener('submit', function(e) {
             return;
         }
 
-        // Ask user to confirm the plant name
-        const identifiedName = v.plant_name || 'Unknown';
-        const confirmed = confirm(
-            `The AI identified this as: ${identifiedName}\n\n` +
-            `Is this correct? Click OK to proceed with disease analysis, or Cancel to correct the description.`
-        );
-
-        if (!confirmed) {
-            return; // User will edit the description manually
-        }
-
-        // Phase 2: Enrich description with verified plant name and submit
-        const userDescription = document.getElementById('description').value.trim();
-        const enrichedDescription = userDescription
-            ? `${userDescription} | Verified plant: ${identifiedName}`
-            : `Verified plant: ${identifiedName}`;
-
-        // Create a new FormData with the enriched description
-        const finalFormData = new FormData(form);
-        finalFormData.set('description', enrichedDescription);
-
-        submitDetection(finalFormData);
+        // Show the inline confirmation card
+        pendingPlantName = v.plant_name || 'Unknown';
+        verifiedPlantName.textContent = pendingPlantName;
+        verifiedConfidence.textContent = v.confidence ? `Confidence: ${v.confidence}` : '';
+        verificationCard.style.display = 'block';
+        verificationCard.scrollIntoView({ behavior: 'smooth' });
     })
     .catch(err => {
         loadingIndicator.style.display = 'none';
         analyzeButton.disabled = false;
         alert('Error verifying image. Please try again.');
     });
+});
+
+// User confirms the plant name: proceed to Phase 2
+confirmNameBtn.addEventListener('click', function() {
+    const userDescription = document.getElementById('description').value.trim();
+    const enrichedDescription = userDescription
+        ? `${userDescription} | Verified plant: ${pendingPlantName}`
+        : `Verified plant: ${pendingPlantName}`;
+
+    const finalFormData = new FormData(form);
+    finalFormData.set('description', enrichedDescription);
+
+    submitDetection(finalFormData);
+});
+
+// User says the name is wrong: hide the card and prompt them to edit
+editNameBtn.addEventListener('click', function() {
+    verificationCard.style.display = 'none';
+    const desc = document.getElementById('description');
+    desc.focus();
+    desc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    alert('Please describe the plant or correct its name in the description box, then click Analyze Plant again. Example: "This is a tomato plant with yellow spots on the leaves."');
 });
 </script>
 {% endblock %}
