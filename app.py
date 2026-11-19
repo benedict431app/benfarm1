@@ -467,6 +467,84 @@ def farmer_weather():
         return render_template('farmer/weather.html', weather=None, forecast=None)
 
 
+
+# ---------------------------------------------------------------------------
+# Profile & settings (available to all logged-in user types)
+# ---------------------------------------------------------------------------
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    """View and edit the current user's profile."""
+    if request.method == 'POST':
+        # Text fields
+        current_user.full_name = request.form.get('full_name', current_user.full_name).strip() or current_user.full_name
+        current_user.phone_number = request.form.get('phone_number', '').strip() or None
+        current_user.location = request.form.get('location', '').strip() or None
+        current_user.bio = request.form.get('bio', '').strip() or None
+
+        # Profile picture upload
+        profile_file = request.files.get('profile_picture')
+        if profile_file and profile_file.filename:
+            if allowed_file(profile_file.filename):
+                ext = profile_file.filename.rsplit('.', 1)[1].lower()
+                filename = secure_filename(
+                    f"profile_{current_user.id}_{uuid.uuid4().hex[:8]}.{ext}"
+                )
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                profile_file.save(filepath)
+
+                # Delete the old picture file if it exists
+                if current_user.profile_picture:
+                    old_path = os.path.join(app.config['UPLOAD_FOLDER'], current_user.profile_picture)
+                    if os.path.exists(old_path):
+                        try:
+                            os.remove(old_path)
+                        except OSError:
+                            pass
+
+                current_user.profile_picture = filename
+            else:
+                flash('Invalid image format. Allowed: png, jpg, jpeg, gif.', 'error')
+                return redirect(url_for('profile'))
+
+        # Optional: password change
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        if new_password:
+            if new_password != confirm_password:
+                flash('Passwords do not match.', 'error')
+                return redirect(url_for('profile'))
+            if len(new_password) < 6:
+                flash('Password must be at least 6 characters.', 'error')
+                return redirect(url_for('profile'))
+            current_user.set_password(new_password)
+
+        db.session.commit()
+        flash('Profile updated successfully.', 'success')
+        return redirect(url_for('profile'))
+
+    return render_template('profile/settings.html')
+
+
+@app.route('/profile/picture/remove', methods=['POST'])
+@login_required
+def remove_profile_picture():
+    """Remove the current user's profile picture."""
+    if current_user.profile_picture:
+        old_path = os.path.join(app.config['UPLOAD_FOLDER'], current_user.profile_picture)
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except OSError:
+                pass
+        current_user.profile_picture = None
+        db.session.commit()
+    flash('Profile picture removed.', 'info')
+    return redirect(url_for('profile'))
+
+
 @app.route('/farmer/agrovets')
 @login_required
 def farmer_agrovets():
