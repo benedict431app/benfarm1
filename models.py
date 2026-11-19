@@ -94,7 +94,17 @@ class InventoryItem(db.Model):
     
     def is_low_stock(self):
         return self.quantity <= self.reorder_level
-
+class PaymentRecord(db.Model):
+    __tablename__ = 'payment_records'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    checkout_request_id = db.Column(db.String(255), unique=True)
+    merchant_request_id = db.Column(db.String(255))
+    amount = db.Column(db.Float, default=10.0)
+    status = db.Column(db.String(50), default='pending')  # pending, completed, failed
+    mpesa_receipt = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
 class Customer(db.Model):
     __tablename__ = 'customers'
     
