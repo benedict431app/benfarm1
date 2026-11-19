@@ -1,0 +1,4 @@
+# After AdSense approval, set ADSENSE_PUBLISHER_ID in the production environment.
+# Flask serves the verified publisher line dynamically at /ads.txt.
+google.com, pub-8021594730951059, DIRECT, f08c47fec0942fa0
+google.com, pub-8021594730951059, DIRECT, f08c47fec0942fa0
