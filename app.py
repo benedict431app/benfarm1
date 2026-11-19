@@ -757,7 +757,38 @@ def add_communication(customer_id):
     flash('Communication log added successfully!', 'success')
     return redirect(url_for('view_customer', customer_id=customer_id))
 
+from flask import send_from_directory
 
+# ---------------------------------------------------------------------------
+# SEO: robots.txt, sitemap.xml, and public landing pages
+# ---------------------------------------------------------------------------
+
+@app.route('/robots.txt')
+def robots_txt():
+    return send_from_directory(app.static_folder, 'robots.txt', mimetype='text/plain')
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    return send_from_directory(app.static_folder, 'sitemap.xml', mimetype='application/xml')
+
+
+@app.route('/ai-crop-disease-detection')
+def ai_crop_disease_detection():
+    """Public SEO landing page (no login required)."""
+    return render_template('seo/ai_crop_disease_detection.html')
+
+
+@app.route('/agrovets')
+def agrovets_index():
+    """Hub page linking to all city-specific agrovet pages."""
+    return render_template('seo/agrovets_index.html')
+
+
+@app.route('/agrovets/nairobi')
+def agrovets_nairobi():
+    """Local SEO landing page for Nairobi agrovets."""
+    return render_template('seo/agrovets_nairobi.html')
 @app.route('/officer/dashboard')
 @login_required
 def officer_dashboard():
