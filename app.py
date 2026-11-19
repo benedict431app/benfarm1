@@ -1,6 +1,7 @@
 import os
 import json
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import (Flask, render_template, request, redirect, url_for,
+                   flash, jsonify, session, send_from_directory)
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
@@ -757,7 +758,6 @@ def add_communication(customer_id):
     flash('Communication log added successfully!', 'success')
     return redirect(url_for('view_customer', customer_id=customer_id))
 
-from flask import send_from_directory
 
 # ---------------------------------------------------------------------------
 # SEO: robots.txt, sitemap.xml, and public landing pages
@@ -789,6 +789,12 @@ def agrovets_index():
 def agrovets_nairobi():
     """Local SEO landing page for Nairobi agrovets."""
     return render_template('seo/agrovets_nairobi.html')
+
+
+# ---------------------------------------------------------------------------
+# Other dashboards
+# ---------------------------------------------------------------------------
+
 @app.route('/officer/dashboard')
 @login_required
 def officer_dashboard():
@@ -811,6 +817,10 @@ def institution_dashboard():
 
     return render_template('institution/dashboard.html')
 
+
+# ---------------------------------------------------------------------------
+# AI chat
+# ---------------------------------------------------------------------------
 
 @app.route('/api/chat', methods=['POST'])
 @login_required
@@ -860,17 +870,9 @@ def chat():
         })
 
 
-from flask import send_from_directory
-
-@app.route('/robots.txt')
-def robots_txt():
-    return send_from_directory(app.static_folder, 'robots.txt')
-
-@app.route('/sitemap.xml')
-def sitemap_xml():
-    return send_from_directory(app.static_folder, 'sitemap.xml')
-
-
+# ---------------------------------------------------------------------------
+# Diagnostics
+# ---------------------------------------------------------------------------
 
 @app.route('/test-api')
 def test_api():
