@@ -39,6 +39,7 @@ class Config:
     TUMA_BUSINESS_EMAIL = os.getenv('TUMA_BUSINESS_EMAIL')
     TUMA_AUTH_URL = 'https://api.tuma.co.ke/auth/token'
     TUMA_STK_URL = 'https://api.tuma.co.ke/payment/stk-push'
+    COHERE_CHAT_MODEL = os.getenv('COHERE_CHAT_MODEL', 'command-r7b-12-2024')
     
     # Flask configuration
     PREFERRED_URL_SCHEME = 'https'
