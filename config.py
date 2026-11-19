@@ -42,7 +42,9 @@ class Config:
     TUMA_AUTH_URL = 'https://api.tuma.co.ke/auth/token'
     TUMA_STK_URL = 'https://api.tuma.co.ke/payment/stk-push'
     COHERE_CHAT_MODEL = os.getenv('COHERE_CHAT_MODEL', 'command-r7b-12-2024')
+    COHERE_VISION_MODEL = os.getenv('COHERE_VISION_MODEL', 'command-a-vision-07-2025')
     FREE_SCAN_LIMIT = int(os.getenv('FREE_SCAN_LIMIT', '3'))
+    
     
     # Flask configuration
     PREFERRED_URL_SCHEME = 'https'
