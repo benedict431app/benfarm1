@@ -36,7 +36,7 @@ cohere_api_key = app.config.get('COHERE_API_KEY', '')
 cohere_model = app.config.get('COHERE_CHAT_MODEL', 'command-r7b-12-2024')
 
 # Free scans before payment kicks in. Override via FREE_SCAN_LIMIT env var.
-free_scan_limit = app.config.get('FREE_SCAN_LIMIT', 3)
+free_scan_limit = app.config.get('FREE_SCAN_LIMIT', 30)
 
 @login_manager.user_loader
 def load_user(user_id):
