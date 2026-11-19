@@ -23,6 +23,8 @@ class User(UserMixin, db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
+    # models.py - Add to the User class
+    disease_scan_count = db.Column(db.Integer, default=0)
     
     # Relationships
     inventory_items = db.relationship('InventoryItem', backref='agrovet', lazy=True, cascade='all, delete-orphan')
