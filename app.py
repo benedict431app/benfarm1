@@ -236,7 +236,7 @@ def detect_disease():
 
     if request.method == 'POST':
         # === Payment Gate Check ===
-        if current_user.disease_scan_count >= 1:
+        if current_user.disease_scan_count >= 10:
             # Already used free scan — check for a completed, unused payment
             paid_record = PaymentRecord.query.filter_by(
                 user_id=current_user.id,
