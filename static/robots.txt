@@ -1,4 +1,20 @@
 User-agent: *
 Allow: /
 
+# Explicitly allow AI crawlers so AI search tools can cite the site
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
 Sitemap: https://benfarm1-m7tg.onrender.com/sitemap.xml
