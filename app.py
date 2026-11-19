@@ -29,6 +29,9 @@ login_manager.login_view = 'login'
 
 # Configure Cohere
 cohere_api_key = app.config.get('COHERE_API_KEY', '')
+# Single source of truth for the Cohere chat model.
+# Override via COHERE_CHAT_MODEL env var when Cohere retires a model.
+cohere_model = app.config.get('COHERE_CHAT_MODEL', 'command-r7b-12-2024')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -266,7 +269,7 @@ def detect_disease():
                 }
 
                 chat_payload = {
-                    'model': 'c4ai-aya-expanse-8b',
+                    'model': cohere_model,
                     'message': f"As an agricultural expert, analyze this plant health situation: {description}. Provide possible disease names, treatment recommendations, and prevention tips.",
                     'temperature': 0.7,
                     'max_tokens': 600
@@ -278,6 +281,7 @@ def detect_disease():
                 if response.status_code == 200 and 'text' in result:
                     analysis = result['text']
                 else:
+                    print(f"Cohere error {response.status_code}: {result}")
                     analysis = "Unable to analyze plant health at the moment. Please consult with an agricultural officer."
 
                 report = DiseaseReport(
@@ -717,7 +721,7 @@ def chat():
         }
 
         chat_payload = {
-            'model': 'c4ai-aya-expanse-8b',
+            'model': cohere_model,
             'message': message,
             'temperature': 0.7,
             'max_tokens': 500,
@@ -731,6 +735,7 @@ def chat():
             ai_response = result['text']
         else:
             error_msg = result.get('message', 'Unknown error from Cohere API')
+            print(f"Cohere chat error {response.status_code}: {result}")
             return jsonify({
                 'success': False,
                 'error': f'Cohere API error: {error_msg}'
@@ -757,7 +762,7 @@ def test_api():
         }
 
         test_payload = {
-            'model': 'c4ai-aya-expanse-8b',
+            'model': cohere_model,
             'message': 'Please respond with "API test successful" if you are working.',
             'temperature': 0.7,
             'max_tokens': 20
