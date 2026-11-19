@@ -232,6 +232,112 @@ def farmer_dashboard():
     return render_template('farmer/dashboard.html', notifications=notifications, disease_reports=disease_reports)
 
 
+
+
+import base64
+
+@app.route('/farmer/verify-plant', methods=['POST'])
+@login_required
+def verify_plant():
+    """Step 1: Check if image is a plant and identify the plant name."""
+    if current_user.user_type != 'farmer':
+        return jsonify({'error': 'Access denied'}), 403
+
+    if 'plant_image' not in request.files:
+        return jsonify({'error': 'No image provided'}), 400
+
+    file = request.files['plant_image']
+    if not (file and allowed_file(file.filename)):
+        return jsonify({'error': 'Invalid file type'}), 400
+
+    # Read image as base64 for Cohere Vision
+    image_bytes = file.read()
+    image_b64 = base64.b64encode(image_bytes).decode('utf-8')
+    # Reset file pointer so detect_disease can read it later
+    file.seek(0)
+
+    try:
+        headers = {
+            'Authorization': f'Bearer {cohere_api_key}',
+            'Content-Type': 'application/json',
+        }
+
+        vision_model = app.config.get('COHERE_VISION_MODEL', 'command-a-vision-07-2025')
+        prompt = """Analyze this image. Return ONLY a valid JSON object with this exact schema:
+
+{
+  "is_plant": true or false,
+  "plant_name": "common English name of the plant, or 'Unknown' if not a plant",
+  "confidence": "high, medium, or low",
+  "reason": "brief explanation if not a plant"
+}
+
+Rules:
+- If the image clearly shows a plant (leaves, stem, fruit, flower), set is_plant to true and identify the plant.
+- If the image is not a plant (e.g., a person, animal, object, screenshot), set is_plant to false and plant_name to "Unknown".
+- Be strict: do not guess if the image is ambiguous."""
+
+        payload = {
+            'model': vision_model,
+            'message': prompt,
+            'temperature': 0.2,
+            'max_tokens': 300,
+            'image_url': f"data:image/jpeg;base64,{image_b64}"
+        }
+
+        response = requests.post('https://api.cohere.ai/v1/chat', json=payload, headers=headers, timeout=30)
+        result = response.json()
+
+        if response.status_code == 200 and 'text' in result:
+            cleaned = result['text'].strip()
+            if cleaned.startswith('```'):
+                cleaned = cleaned.split('```', 1)[1]
+                if cleaned.lower().startswith('json'):
+                    cleaned = cleaned[4:]
+                cleaned = cleaned.rsplit('```', 1)[0]
+            cleaned = cleaned.strip()
+            try:
+                verification = json.loads(cleaned)
+            except Exception:
+                return jsonify({
+                    'success': True,
+                    'verification': {
+                        'is_plant': True,
+                        'plant_name': 'Unknown',
+                        'confidence': 'low',
+                        'reason': 'Could not parse verification result'
+                    }
+                })
+            return jsonify({'success': True, 'verification': verification})
+        else:
+            print(f"Cohere vision error {response.status_code}: {result}")
+            # Fail open: allow the user to proceed
+            return jsonify({
+                'success': True,
+                'verification': {
+                    'is_plant': True,
+                    'plant_name': 'Unknown',
+                    'confidence': 'low',
+                    'reason': 'Verification service unavailable'
+                }
+            })
+
+    except Exception as e:
+        print(f"Vision verification error: {e}")
+        return jsonify({
+            'success': True,
+            'verification': {
+                'is_plant': True,
+                'plant_name': 'Unknown',
+                'confidence': 'low',
+                'reason': str(e)
+            }
+        })
+
+
+
+
+
 @app.route('/farmer/detect-disease', methods=['GET', 'POST'])
 @login_required
 def detect_disease():
@@ -281,30 +387,30 @@ def detect_disease():
                 # Ask Cohere for STRICT JSON so we can render a table + paragraphs
                 prompt = f"""You are a senior agricultural plant pathologist.
 
-Analyze the following plant health situation and return ONLY a valid JSON object.
+Analyze this plant health situation using BOTH the provided image AND the user's description.
 
 User description: "{description}"
 
 Return this exact JSON schema (no markdown, no code fences, no extra text):
 {{
   "table": {{
-    "plant_name": "common English name of the plant",
-    "scientific_name": "Latin binomial, e.g. Solanum lycopersicum",
-    "local_name": "common local/Kenyan name (e.g. Nyanya), or 'Not applicable' if unknown",
-    "disease_type": "name of the disease or disorder (fungal / bacterial / viral / pest / nutrient)",
+    "plant_name": "common English name",
+    "scientific_name": "Latin binomial",
+    "local_name": "common local/Kenyan name, or 'Not applicable'",
+    "disease_type": "name of the disease or disorder",
     "organic_treatment": "specific organic or cultural treatment steps, 2-4 sentences",
-    "other_treatments": "conventional chemical or biological treatments, product types and dosage guidance, 2-4 sentences",
-    "prevention": "preventive measures for future crops, 2-4 sentences"
+    "other_treatments": "conventional chemical or biological treatments, 2-4 sentences",
+    "prevention": "preventive measures, 2-4 sentences"
   }},
   "paragraphs": {{
-    "causes": "Elaborate paragraph (150-250 words) explaining the causal organism or factor, how it spreads, favourable conditions (temperature, humidity, soil), and lifecycle where relevant.",
-    "preventive_care": "Elaborate paragraph (150-250 words) on preventive care: crop rotation, spacing, sanitation, resistant varieties, irrigation practices, mulching, quarantine, and monitoring schedules.",
-    "treatment": "Elaborate paragraph (150-250 words) on treatment: step-by-step organic first, then conventional options, application timing, safety precautions, and expected recovery timeline.",
-    "other_information": "Elaborate paragraph (150-250 words) with any other relevant information: economic impact, look-alike diseases, when to consult an extension officer, soil health notes, or post-harvest handling."
+    "causes": "Elaborate paragraph (150-250 words) explaining the causal organism or factor, how it spreads, favourable conditions, and lifecycle.",
+    "preventive_care": "Elaborate paragraph (150-250 words) on preventive care: crop rotation, spacing, sanitation, resistant varieties, irrigation, mulching, monitoring.",
+    "treatment": "Elaborate paragraph (150-250 words) on treatment: step-by-step organic first, then conventional options, application timing, safety, expected recovery.",
+    "other_information": "Elaborate paragraph (150-250 words) with other relevant information: economic impact, look-alike diseases, when to consult an extension officer."
   }}
 }}
 
-If the plant or disease cannot be identified from the description, set the identifying fields to "Unknown" but still fill every paragraph with the best general guidance you can, explaining the uncertainty.
+Base your diagnosis on the VISUAL symptoms in the image combined with the user's textual description. If the image and description conflict, note the discrepancy in the 'other_information' paragraph.
 
 Return JSON only."""
 
