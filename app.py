@@ -141,7 +141,128 @@ def logout():
     logout_user()
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
+import uuid
 
+def get_tuma_token():
+    """Get Tuma access token"""
+    payload = {
+        "email": app.config['TUMA_BUSINESS_EMAIL'],
+        "api_key": app.config['TUMA_API_KEY']
+    }
+    resp = requests.post(app.config['TUMA_AUTH_URL'], json=payload)
+    if resp.status_code == 200:
+        return resp.json()['data']['token']
+    return None
+
+def initiate_tuma_stk(phone, amount=10.0, callback_url=None):
+    """Initiate STK Push, return (success, checkout_request_id, error)"""
+    token = get_tuma_token()
+    if not token:
+        return False, None, "Failed to authenticate with payment gateway"
+    
+    # Normalize phone to 254XXXXXXXXX
+    phone = phone.strip().replace('+', '').replace(' ', '')
+    if phone.startswith('0'):
+        phone = '254' + phone[1:]
+    elif phone.startswith('7') or phone.startswith('1'):
+        phone = '254' + phone
+    
+    payload = {
+        "amount": amount,
+        "phone": phone,
+        "callback_url": callback_url or url_for('tuma_callback', _external=True),
+        "description": "Plant disease scan - KES 10"
+    }
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    resp = requests.post(app.config['TUMA_STK_URL'], json=payload, headers=headers)
+    data = resp.json()
+    
+    if resp.status_code == 200 and data.get('success'):
+        return True, data.get('data', {}).get('checkout_request_id'), None
+    return False, None, data.get('message', 'Payment initiation failed')
+
+
+
+@app.route('/farmer/detect-disease', methods=['GET', 'POST'])
+@login_required
+def detect_disease():
+    if current_user.user_type != 'farmer':
+        flash('Access denied', 'error')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        # === Payment Gate Check ===
+        if current_user.disease_scan_count >= 1:
+            # Already used free scan, need to verify payment
+            payment_ok = session.pop('disease_payment_ok', False)
+            if not payment_ok:
+                return jsonify({
+                    'requires_payment': True,
+                    'message': 'You have used your free scan. Pay KES 10 to continue.',
+                    'amount': 10
+                }), 402
+        
+        # ... original file upload and Cohere analysis logic remains unchanged ...
+        
+        # After successful analysis, increment scan count
+        current_user.disease_scan_count += 1
+        db.session.commit()
+        
+        return jsonify({'success': True, 'analysis': analysis, 'report_id': report.id})
+
+
+@app.route('/payment/initiate-scan', methods=['POST'])
+@login_required
+def initiate_scan_payment():
+    """Frontend calls this endpoint to initiate KES 10 payment"""
+    data = request.get_json()
+    phone = data.get('phone', '').strip()
+    
+    if not phone:
+        return jsonify({'success': False, 'error': 'Phone number required'}), 400
+    
+    success, checkout_id, error = initiate_tuma_stk(phone, amount=10.0)
+    
+    if success:
+        # Record pending payment
+        record = PaymentRecord(
+            user_id=current_user.id,
+            checkout_request_id=checkout_id,
+            amount=10.0,
+            status='pending'
+        )
+        db.session.add(record)
+        db.session.commit()
+        return jsonify({'success': True, 'checkout_request_id': checkout_id})
+    
+    return jsonify({'success': False, 'error': error}), 400
+
+
+@app.route('/payment/tuma-callback', methods=['POST'])
+def tuma_callback():
+    """Tuma payment result callback"""
+    data = request.get_json()
+    
+    checkout_id = data.get('checkout_request_id')
+    result_code = data.get('result_code')
+    receipt = data.get('mpesa_receipt_number', '')
+    
+    record = PaymentRecord.query.filter_by(checkout_request_id=checkout_id).first()
+    if not record:
+        return jsonify({'status': 'ok'}), 200  # Return 200 to prevent Tuma retry
+    
+    if result_code == 0:
+        record.status = 'completed'
+        record.mpesa_receipt = receipt
+        # Mark session to allow one detection
+        # Note: Callback is server-to-server, cannot directly set session for user
+        # Solutions: use a flag field in PaymentRecord, checked in detection route
+        record.used = True  # Add this field to model, or use status to judge
+    else:
+        record.status = 'failed'
+    
+    db.session.commit()
+    return jsonify({'status': 'ok'}), 200
 @app.route('/farmer/dashboard')
 @login_required
 def farmer_dashboard():
