@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://benfarm1-m7tg.onrender.com/sitemap.xml
