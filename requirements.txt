@@ -1,4 +1,4 @@
---upgrade pip
+
 setuptools>=65.5.0
 wheel>=0.38.0
 Flask==2.3.3
