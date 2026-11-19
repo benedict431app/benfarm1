@@ -790,7 +790,12 @@ def agrovets_nairobi():
     """Local SEO landing page for Nairobi agrovets."""
     return render_template('seo/agrovets_nairobi.html')
 
+@app.route('/agrovets/nakuru')
+def agrovets_nakuru():
+    """Local SEO landing page for Nakuru agrovets."""
+    return render_template('seo/agrovets_nakuru.html')
 
+    
 # ---------------------------------------------------------------------------
 # Other dashboards
 # ---------------------------------------------------------------------------
