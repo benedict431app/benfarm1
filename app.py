@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
@@ -32,6 +33,9 @@ cohere_api_key = app.config.get('COHERE_API_KEY', '')
 # Single source of truth for the Cohere chat model.
 # Override via COHERE_CHAT_MODEL env var when Cohere retires a model.
 cohere_model = app.config.get('COHERE_CHAT_MODEL', 'command-r7b-12-2024')
+
+# Free scans before payment kicks in. Override via FREE_SCAN_LIMIT env var.
+free_scan_limit = app.config.get('FREE_SCAN_LIMIT', 3)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -236,8 +240,8 @@ def detect_disease():
 
     if request.method == 'POST':
         # === Payment Gate Check ===
-        if current_user.disease_scan_count >= 3:
-            # Already used free scan — check for a completed, unused payment
+        if current_user.disease_scan_count >= free_scan_limit:
+            # Free scans exhausted — check for a completed, unused payment
             paid_record = PaymentRecord.query.filter_by(
                 user_id=current_user.id,
                 status='completed',
@@ -247,7 +251,7 @@ def detect_disease():
             if not paid_record:
                 return jsonify({
                     'requires_payment': True,
-                    'message': 'You have used your free scan. Pay KES 10 to continue.',
+                    'message': f'You have used your {free_scan_limit} free scans. Pay KES 10 to continue.',
                     'amount': 10
                 }), 402
 
@@ -273,21 +277,84 @@ def detect_disease():
                     'Content-Type': 'application/json',
                 }
 
+                # Ask Cohere for STRICT JSON so we can render a table + paragraphs
+                prompt = f"""You are a senior agricultural plant pathologist.
+
+Analyze the following plant health situation and return ONLY a valid JSON object.
+
+User description: "{description}"
+
+Return this exact JSON schema (no markdown, no code fences, no extra text):
+{{
+  "table": {{
+    "plant_name": "common English name of the plant",
+    "scientific_name": "Latin binomial, e.g. Solanum lycopersicum",
+    "local_name": "common local/Kenyan name (e.g. Nyanya), or 'Not applicable' if unknown",
+    "disease_type": "name of the disease or disorder (fungal / bacterial / viral / pest / nutrient)",
+    "organic_treatment": "specific organic or cultural treatment steps, 2-4 sentences",
+    "other_treatments": "conventional chemical or biological treatments, product types and dosage guidance, 2-4 sentences",
+    "prevention": "preventive measures for future crops, 2-4 sentences"
+  }},
+  "paragraphs": {{
+    "causes": "Elaborate paragraph (150-250 words) explaining the causal organism or factor, how it spreads, favourable conditions (temperature, humidity, soil), and lifecycle where relevant.",
+    "preventive_care": "Elaborate paragraph (150-250 words) on preventive care: crop rotation, spacing, sanitation, resistant varieties, irrigation practices, mulching, quarantine, and monitoring schedules.",
+    "treatment": "Elaborate paragraph (150-250 words) on treatment: step-by-step organic first, then conventional options, application timing, safety precautions, and expected recovery timeline.",
+    "other_information": "Elaborate paragraph (150-250 words) with any other relevant information: economic impact, look-alike diseases, when to consult an extension officer, soil health notes, or post-harvest handling."
+  }}
+}}
+
+If the plant or disease cannot be identified from the description, set the identifying fields to "Unknown" but still fill every paragraph with the best general guidance you can, explaining the uncertainty.
+
+Return JSON only."""
+
                 chat_payload = {
                     'model': cohere_model,
-                    'message': f"As an agricultural expert, analyze this plant health situation: {description}. Provide possible disease names, treatment recommendations, and prevention tips.",
-                    'temperature': 0.7,
-                    'max_tokens': 600
+                    'message': prompt,
+                    'temperature': 0.4,
+                    'max_tokens': 1800
                 }
 
                 response = requests.post('https://api.cohere.ai/v1/chat', json=chat_payload, headers=headers)
                 result = response.json()
 
+                analysis_text = None
+                structured = None
                 if response.status_code == 200 and 'text' in result:
-                    analysis = result['text']
+                    analysis_text = result['text'].strip()
+                    # Strip code fences if the model wrapped the JSON
+                    cleaned = analysis_text
+                    if cleaned.startswith('```'):
+                        cleaned = cleaned.split('```', 1)[1]
+                        if cleaned.lower().startswith('json'):
+                            cleaned = cleaned[4:]
+                        cleaned = cleaned.rsplit('```', 1)[0]
+                    cleaned = cleaned.strip()
+                    try:
+                        structured = json.loads(cleaned)
+                    except Exception as parse_err:
+                        print(f"Cohere JSON parse error: {parse_err}. Raw: {analysis_text[:500]}")
+                        structured = None
+
+                if structured and isinstance(structured, dict):
+                    # Store a readable text version in the DB for history/records
+                    t = structured.get('table', {})
+                    p = structured.get('paragraphs', {})
+                    analysis = (
+                        f"Plant: {t.get('plant_name','Unknown')} ({t.get('scientific_name','Unknown')})\n"
+                        f"Local name: {t.get('local_name','Unknown')}\n"
+                        f"Disease: {t.get('disease_type','Unknown')}\n"
+                        f"Organic treatment: {t.get('organic_treatment','')}\n"
+                        f"Other treatments: {t.get('other_treatments','')}\n"
+                        f"Prevention: {t.get('prevention','')}\n\n"
+                        f"Causes: {p.get('causes','')}\n\n"
+                        f"Preventive care: {p.get('preventive_care','')}\n\n"
+                        f"Treatment: {p.get('treatment','')}\n\n"
+                        f"Other information: {p.get('other_information','')}"
+                    )
                 else:
+                    # Fallback: model returned non-JSON — still show the raw text
                     print(f"Cohere error {response.status_code}: {result}")
-                    analysis = "Unable to analyze plant health at the moment. Please consult with an agricultural officer."
+                    analysis = analysis_text or "Unable to analyze plant health at the moment. Please consult with an agricultural officer."
 
                 report = DiseaseReport(
                     farmer_id=current_user.id,
@@ -307,6 +374,7 @@ def detect_disease():
                 return jsonify({
                     'success': True,
                     'analysis': analysis,
+                    'structured': structured,   # None if parsing failed
                     'report_id': report.id
                 })
 
