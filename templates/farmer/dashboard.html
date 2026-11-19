@@ -103,4 +103,30 @@
         </div>
     </div>
 </div>
+// In the submit handler of detect_disease.html
+fetch('/farmer/detect-disease', { method: 'POST', body: formData })
+.then(response => response.json())
+.then(data => {
+    if (data.requires_payment) {
+        const phone = prompt('Free scan used. Enter M-PESA phone number to pay KES 10:');
+        if (phone) {
+            fetch('/payment/initiate-scan', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ phone: phone })
+            })
+            .then(r => r.json())
+            .then(payData => {
+                if (payData.success) {
+                    alert('Check your phone and enter M-PESA PIN to complete payment.');
+                    // Poll for payment status or ask user to resubmit after payment
+                } else {
+                    alert('Payment failed: ' + payData.error);
+                }
+            });
+        }
+        return;
+    }
+    // Normal display of analysis results
+});
 {% endblock %}
