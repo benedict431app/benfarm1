@@ -15,6 +15,11 @@
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
+        <url>
+        <loc>https://benfarm1-m7tg.onrender.com/agrovets/nakuru</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
     <url>
         <loc>https://benfarm1-m7tg.onrender.com/register</loc>
         <changefreq>monthly</changefreq>
