@@ -1,0 +1,228 @@
+{% extends "components/base.html" %}
+
+{% block title %}AI Crop Disease Detection in Kenya | Adiseware{% endblock %}
+
+{% block extra_css %}
+<style>
+    .answer-box { background: #e8f5e9; border-left: 5px solid #198754; padding: 1.25rem; border-radius: .25rem; }
+    .answer-box p { margin-bottom: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Answer-first hero: this is the block AI search tools quote -->
+<div class="row mb-5">
+    <div class="col-lg-10 mx-auto">
+        <div class="answer-box mb-4">
+            <h1 class="h2 mb-3">AI Crop Disease Detection in Kenya</h1>
+            <p class="lead">
+                Adiseware is an AI-powered crop disease detection platform for Kenyan farmers.
+                Upload a photo of your maize, beans, coffee, tomatoes, or any crop, and our AI
+                identifies possible diseases, recommends organic and conventional treatments,
+                and gives you prevention tips in seconds. Your first 3 scans are free —
+                subsequent scans cost KES 10 via M-PESA.
+            </p>
+        </div>
+        <div class="text-center">
+            <a href="{{ url_for('register') }}" class="btn btn-success btn-lg me-2">
+                <i class="fas fa-camera" aria-hidden="true"></i> Start a Free Scan
+            </a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-success btn-lg">Login</a>
+        </div>
+    </div>
+</div>
+
+<!-- How it works -->
+<section class="mb-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <h2 class="h3 mb-4">How AI Crop Disease Detection Works</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h3 class="h5">1. Upload a Photo</h3>
+                            <p class="card-text">Take a clear photo of the affected plant with your phone and upload it to Adiseware.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h3 class="h5">2. AI Analysis</h3>
+                            <p class="card-text">Our AI model analyses the image and description to identify possible diseases and disorders.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h3 class="h5">3. Get Treatment Advice</h3>
+                            <p class="card-text">Receive a structured report: plant name, scientific name, disease type, organic and conventional treatments, and prevention.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Crops supported -->
+<section class="mb-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <h2 class="h3 mb-4">Crops Supported</h2>
+            <p>Adiseware's AI works across the major Kenyan crops, including:</p>
+            <ul class="row list-unstyled">
+                <li class="col-md-4"><i class="fas fa-check text-success" aria-hidden="true"></i> Maize</li>
+                <li class="col-md-4"><i class="fas fa-check text-success" aria-hidden="true"></i> Beans</li>
+                <li class="col-md-4"><i class="fas fa-check text-success" aria-hidden="true"></i> Coffee</li>
+                <li class="col-md-4"><i class="fas fa-check text-success" aria-hidden="true"></i> Tea</li>
+                <li class="col-md-4"><i class="fas fa-check text-success" aria-hidden="true"></i> Tomatoes</li>
+                <li class="col-md-4"><i class="fas fa-check text-success" aria-hidden="true"></i> Potatoes</li>
+                <li class="col-md-4"><i class="fas fa-check text-success" aria-hidden="true"></i> Kale (Sukuma Wiki)</li>
+                <li class="col-md-4"><i class="fas fa-check text-success" aria-hidden="true"></i> Bananas</li>
+                <li class="col-md-4"><i class="fas fa-check text-success" aria-hidden="true"></i> Avocado</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ: answer-first questions; schema below matches this content -->
+<section class="mb-5" id="faq">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <h2 class="h3 mb-4">Frequently Asked Questions</h2>
+            <div class="accordion" id="faqAccordion">
+
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="faq1h">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1" aria-expanded="true" aria-controls="faq1">
+                            How does AI crop disease detection work?
+                        </button>
+                    </h3>
+                    <div id="faq1" class="accordion-collapse collapse show" aria-labelledby="faq1h" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            You upload a photo of the affected plant. Adiseware's AI analyses the image together with any description you provide, then returns possible disease names, organic and conventional treatment options, and prevention tips.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="faq2h">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2" aria-expanded="false" aria-controls="faq2">
+                            Is the first scan free?
+                        </button>
+                    </h3>
+                    <div id="faq2" class="accordion-collapse collapse" aria-labelledby="faq2h" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Yes. Your first 3 scans are completely free. After that, each scan costs KES 10, payable via M-PESA through our Tuma integration.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="faq3h">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3" aria-expanded="false" aria-controls="faq3">
+                            What crops can Adiseware detect diseases in?
+                        </button>
+                    </h3>
+                    <div id="faq3" class="accordion-collapse collapse" aria-labelledby="faq3h" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Adiseware supports major Kenyan crops such as maize, beans, coffee, tea, tomatoes, potatoes, kale, bananas, and avocado. If you are not sure whether your crop is supported, submit a scan and the AI will tell you what it can identify.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="faq4h">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4" aria-expanded="false" aria-controls="faq4">
+                            How do I pay for a scan after my free scans?
+                        </button>
+                    </h3>
+                    <div id="faq4" class="accordion-collapse collapse" aria-labelledby="faq4h" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            When your free scans run out, you will be prompted to pay KES 10. Enter your M-PESA phone number, confirm the STK push on your phone, and then click Analyze again. The payment is processed securely through Tuma and settled to our Equity Bank account.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Final CTA -->
+<section class="mb-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto text-center">
+            <h2 class="h4 mb-3">Ready to scan your first plant?</h2>
+            <a href="{{ url_for('register') }}" class="btn btn-success btn-lg">
+                <i class="fas fa-seedling" aria-hidden="true"></i> Get Started Free
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Structured data: SoftwareApplication + FAQPage (matches the visible content above) -->
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "Adiseware",
+      "applicationCategory": "AgriculturalApplication",
+      "operatingSystem": "Web",
+      "url": "https://benfarm1-m7tg.onrender.com/",
+      "description": "AI-powered crop disease detection and agrovet finder for Kenyan farmers.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "KES",
+        "description": "First 3 scans free, then KES 10 per scan via M-PESA."
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How does AI crop disease detection work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You upload a photo of the affected plant. Adiseware's AI analyses the image together with any description you provide, then returns possible disease names, organic and conventional treatment options, and prevention tips."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the first scan free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Your first 3 scans are completely free. After that, each scan costs KES 10, payable via M-PESA through our Tuma integration."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What crops can Adiseware detect diseases in?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Adiseware supports major Kenyan crops such as maize, beans, coffee, tea, tomatoes, potatoes, kale, bananas, and avocado."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I pay for a scan after my free scans?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "When your free scans run out, you will be prompted to pay KES 10. Enter your M-PESA phone number, confirm the STK push on your phone, and then click Analyze again."
+          }
+        }
+      ]
+    }
+  ]
+}|tojson }}
+</script>
+
+{% endblock %}
