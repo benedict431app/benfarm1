@@ -34,6 +34,11 @@ class Config:
     PLANTID_API_KEY = os.getenv('PLANTID_API_KEY')
     WEGLOT_API_KEY = os.getenv('WEGLOT_API_KEY')
     COHERE_API_KEY = os.getenv('COHERE_API_KEY')
+    # config.py - Add to the Config class
+    TUMA_API_KEY = os.getenv('TUMA_API_KEY')
+    TUMA_BUSINESS_EMAIL = os.getenv('TUMA_BUSINESS_EMAIL')
+    TUMA_AUTH_URL = 'https://api.tuma.co.ke/auth/token'
+    TUMA_STK_URL = 'https://api.tuma.co.ke/payment/stk-push'
     
     # Flask configuration
     PREFERRED_URL_SCHEME = 'https'
