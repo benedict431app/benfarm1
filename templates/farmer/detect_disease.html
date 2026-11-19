@@ -202,7 +202,62 @@ function handlePayment(formData) {
 
 form.addEventListener('submit', function(e) {
     e.preventDefault();
-    submitDetection(new FormData(this));
+    const formData = new FormData(this);
+
+    // Phase 1: Verify image and plant name
+    loadingIndicator.style.display = 'block';
+    analyzeButton.disabled = true;
+
+    fetch('/farmer/verify-plant', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(verifyData => {
+        loadingIndicator.style.display = 'none';
+        analyzeButton.disabled = false;
+
+        if (!verifyData.success) {
+            alert('Could not verify image: ' + (verifyData.error || 'Unknown error'));
+            return;
+        }
+
+        const v = verifyData.verification;
+
+        // If not a plant, warn and stop
+        if (v.is_plant === false) {
+            alert('This image does not appear to be a plant. Please upload a clear photo of the affected plant.');
+            return;
+        }
+
+        // Ask user to confirm the plant name
+        const identifiedName = v.plant_name || 'Unknown';
+        const confirmed = confirm(
+            `The AI identified this as: ${identifiedName}\n\n` +
+            `Is this correct? Click OK to proceed with disease analysis, or Cancel to correct the description.`
+        );
+
+        if (!confirmed) {
+            return; // User will edit the description manually
+        }
+
+        // Phase 2: Enrich description with verified plant name and submit
+        const userDescription = document.getElementById('description').value.trim();
+        const enrichedDescription = userDescription
+            ? `${userDescription} | Verified plant: ${identifiedName}`
+            : `Verified plant: ${identifiedName}`;
+
+        // Create a new FormData with the enriched description
+        const finalFormData = new FormData(form);
+        finalFormData.set('description', enrichedDescription);
+
+        submitDetection(finalFormData);
+    })
+    .catch(err => {
+        loadingIndicator.style.display = 'none';
+        analyzeButton.disabled = false;
+        alert('Error verifying image. Please try again.');
+    });
 });
 </script>
 {% endblock %}
