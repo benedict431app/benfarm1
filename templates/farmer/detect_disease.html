@@ -43,6 +43,47 @@
                 <div id="resultsContainer" class="mt-4" style="display: none;">
                     <div class="alert alert-success" role="alert">
                         <h2 class="h5 alert-heading"><i class="fas fa-check-circle" aria-hidden="true"></i> Analysis Complete</h2>
+                    </div>
+
+                    <!-- Structured table + paragraphs (preferred) -->
+                    <div id="structuredResults" style="display:none;">
+                        <h3 class="h5 mt-3 mb-2"><i class="fas fa-table" aria-hidden="true"></i> Summary of Findings</h3>
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle" aria-label="Plant disease summary">
+                                <tbody>
+                                    <tr><th scope="row" style="width:30%;">Plant Name</th><td id="rPlantName"></td></tr>
+                                    <tr><th scope="row">Scientific Name</th><td id="rScientificName"></td></tr>
+                                    <tr><th scope="row">Local Name</th><td id="rLocalName"></td></tr>
+                                    <tr><th scope="row">Type of Disease</th><td id="rDiseaseType"></td></tr>
+                                    <tr><th scope="row">Organic Treatment</th><td id="rOrganicTreatment"></td></tr>
+                                    <tr><th scope="row">Other Treatments</th><td id="rOtherTreatments"></td></tr>
+                                    <tr><th scope="row">Prevention</th><td id="rPrevention"></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h3 class="h5 mt-4 mb-2"><i class="fas fa-book-open" aria-hidden="true"></i> Detailed Information</h3>
+                        <div class="mb-3">
+                            <h4 class="h6 text-success">Causes</h4>
+                            <p id="pCauses" class="text-justify"></p>
+                        </div>
+                        <div class="mb-3">
+                            <h4 class="h6 text-success">Preventive Care</h4>
+                            <p id="pPreventiveCare" class="text-justify"></p>
+                        </div>
+                        <div class="mb-3">
+                            <h4 class="h6 text-success">Treatment</h4>
+                            <p id="pTreatment" class="text-justify"></p>
+                        </div>
+                        <div class="mb-3">
+                            <h4 class="h6 text-success">Other Relevant Information</h4>
+                            <p id="pOtherInformation" class="text-justify"></p>
+                        </div>
+                    </div>
+
+                    <!-- Fallback: raw text if model didn't return JSON -->
+                    <div id="fallbackResults" style="display:none;">
+                        <h3 class="h6 mt-3">Analysis</h3>
                         <div id="analysisResults"></div>
                     </div>
                 </div>
@@ -85,14 +126,44 @@ function submitDetection(formData) {
         loadingIndicator.style.display = 'none';
         analyzeButton.disabled = false;
 
-        // Payment required: first scan used
+        // Payment required: free scans exhausted
         if (status === 402 && data.requires_payment) {
             handlePayment(formData);
             return;
         }
 
         if (data.success) {
-            document.getElementById('analysisResults').innerHTML = data.analysis;
+            const structured = data.structured;
+            const structuredBox = document.getElementById('structuredResults');
+            const fallbackBox = document.getElementById('fallbackResults');
+
+            if (structured && structured.table && structured.paragraphs) {
+                const t = structured.table;
+                const p = structured.paragraphs;
+
+                document.getElementById('rPlantName').textContent = t.plant_name || 'Unknown';
+                document.getElementById('rScientificName').textContent = t.scientific_name || 'Unknown';
+                document.getElementById('rLocalName').textContent = t.local_name || 'Unknown';
+                document.getElementById('rDiseaseType').textContent = t.disease_type || 'Unknown';
+                document.getElementById('rOrganicTreatment').textContent = t.organic_treatment || '';
+                document.getElementById('rOtherTreatments').textContent = t.other_treatments || '';
+                document.getElementById('rPrevention').textContent = t.prevention || '';
+
+                document.getElementById('pCauses').textContent = p.causes || '';
+                document.getElementById('pPreventiveCare').textContent = p.preventive_care || '';
+                document.getElementById('pTreatment').textContent = p.treatment || '';
+                document.getElementById('pOtherInformation').textContent = p.other_information || '';
+
+                structuredBox.style.display = 'block';
+                fallbackBox.style.display = 'none';
+            } else {
+                // Fallback: raw text from Cohere
+                document.getElementById('analysisResults').innerHTML =
+                    (data.analysis || '').replace(/\n/g, '<br>');
+                structuredBox.style.display = 'none';
+                fallbackBox.style.display = 'block';
+            }
+
             resultsContainer.style.display = 'block';
             resultsContainer.scrollIntoView({ behavior: 'smooth' });
         } else {
@@ -107,7 +178,7 @@ function submitDetection(formData) {
 }
 
 function handlePayment(formData) {
-    const phone = prompt('Free scan used. Enter M-PESA phone number to pay KES 10:');
+    const phone = prompt('Free scans used. Enter M-PESA phone number to pay KES 10:');
     if (!phone) return;
 
     fetch('/payment/initiate-scan', {
