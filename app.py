@@ -85,6 +85,8 @@ def get_tuma_token():
     }
     try:
         resp = requests.post(app.config['TUMA_AUTH_URL'], json=payload, timeout=30)
+        # DEBUG: log the raw auth response so Render logs show the real error
+        print(f"Tuma auth response: {resp.status_code} {resp.text}")
         if resp.status_code == 200:
             return resp.json().get('data', {}).get('token')
     except Exception as e:
@@ -117,11 +119,14 @@ def initiate_tuma_stk(phone, amount=10.0, callback_url=None):
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     try:
         resp = requests.post(app.config['TUMA_STK_URL'], json=payload, headers=headers, timeout=30)
+        # DEBUG: log the raw STK response so Render logs show the real error
+        print(f"Tuma STK response: {resp.status_code} {resp.text}")
         data = resp.json()
         if resp.status_code == 200 and data.get('success'):
             return True, data.get('data', {}).get('checkout_request_id'), None
         return False, None, data.get('message', 'Payment initiation failed')
     except Exception as e:
+        print(f"Tuma STK error: {e}")
         return False, None, f"Payment gateway error: {str(e)}"
 
 
@@ -336,6 +341,8 @@ def initiate_scan_payment():
         db.session.commit()
         return jsonify({'success': True, 'checkout_request_id': checkout_id})
 
+    # DEBUG: log the real error so it appears in Render logs
+    print(f"Tuma initiate-scan failed: {error}")
     return jsonify({'success': False, 'error': error}), 400
 
 
@@ -343,6 +350,7 @@ def initiate_scan_payment():
 def tuma_callback():
     """Tuma payment result callback (server-to-server)"""
     data = request.get_json() or {}
+    print(f"Tuma callback received: {data}")
 
     checkout_id = data.get('checkout_request_id')
     result_code = data.get('result_code')
@@ -780,6 +788,33 @@ def test_api():
 
     except Exception as e:
         return f"Cohere API Error: {str(e)}"
+
+
+@app.route('/test-tuma')
+def test_tuma():
+    """Diagnostic endpoint: verifies Tuma credentials and STK endpoint.
+    Visit /test-tuma?phone=2547XXXXXXXX in the browser to test the full flow.
+    """
+    phone = request.args.get('phone', '').strip()
+    if not phone:
+        return (
+            "Usage: /test-tuma?phone=2547XXXXXXXX<br><br>"
+            f"TUMA_BUSINESS_EMAIL set: {bool(app.config.get('TUMA_BUSINESS_EMAIL'))}<br>"
+            f"TUMA_API_KEY set: {bool(app.config.get('TUMA_API_KEY'))}<br>"
+            f"TUMA_AUTH_URL: {app.config.get('TUMA_AUTH_URL')}<br>"
+            f"TUMA_STK_URL: {app.config.get('TUMA_STK_URL')}"
+        )
+
+    # 1) Test token fetch
+    token = get_tuma_token()
+    if not token:
+        return "Tuma auth FAILED — check Render logs for the raw response. Verify TUMA_BUSINESS_EMAIL and TUMA_API_KEY."
+
+    # 2) Test STK push
+    success, checkout_id, error = initiate_tuma_stk(phone, amount=10.0)
+    if success:
+        return f"Tuma STK push SUCCESS. checkout_request_id={checkout_id}. Check the phone {phone} for the M-PESA prompt."
+    return f"Tuma STK push FAILED: {error}. Check Render logs for the raw response."
 
 
 @app.route('/list-models')
