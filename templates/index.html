@@ -11,57 +11,112 @@
             from a photo, get treatment advice, and find nearby agrovets. Your first 3 scans are free.
         </p>
         <div class="mt-3">
-            <a href="{{ url_for('register') }}" class="btn btn-success btn-lg me-2">Get Started</a>
+            <a href="{{ url_for('register') }}" class="btn btn-success btn-lg me-2">Get Started Free</a>
             <a href="{{ url_for('login') }}" class="btn btn-outline-success btn-lg">Login</a>
         </div>
-        <p class="mt-3 small text-muted">
+        <p class="mt-3 small">
             <a href="{{ url_for('ai_crop_disease_detection') }}">Learn how AI crop disease detection works →</a>
         </p>
     </div>
 </div>
 
+<div class="container my-5">
+    <div class="row g-4">
 
+        <!-- Farmer -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 text-center">
+                <div class="card-body d-flex flex-column">
+                    <i class="fas fa-user-tie fa-3x text-success mb-3" aria-hidden="true"></i>
+                    <h2 class="h5 card-title">For Farmers</h2>
+                    <p class="card-text flex-grow-1">
+                        Scan plants for diseases, get treatment advice, check weather, and find agrovets near you.
+                    </p>
+                    <a href="{{ url_for('ai_crop_disease_detection') }}" class="btn btn-sm btn-outline-success">
+                        How it works
+                    </a>
+                </div>
+            </div>
+        </div>
 
+        <!-- Agrovet finder -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 text-center">
+                <div class="card-body d-flex flex-column">
+                    <i class="fas fa-store fa-3x text-success mb-3" aria-hidden="true"></i>
+                    <h2 class="h5 card-title">Find Agrovets</h2>
+                    <p class="card-text flex-grow-1">
+                        Locate verified agricultural suppliers across Kenya — seeds, fertilizers, and crop protection.
+                    </p>
+                    <a href="{{ url_for('agrovets_index') }}" class="btn btn-sm btn-outline-success">
+                        Browse locations
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agrovet business -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 text-center">
+                <div class="card-body d-flex flex-column">
+                    <i class="fas fa-cash-register fa-3x text-success mb-3" aria-hidden="true"></i>
+                    <h2 class="h5 card-title">For Agrovets</h2>
+                    <p class="card-text flex-grow-1">
+                        Manage inventory, run a point-of-sale, and keep customer records — all in one place.
+                    </p>
+                    <a href="{{ url_for('register') }}" class="btn btn-sm btn-outline-success">
+                        Register as agrovet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Officers / institutions -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 text-center">
+                <div class="card-body d-flex flex-column">
+                    <i class="fas fa-user-shield fa-3x text-success mb-3" aria-hidden="true"></i>
+                    <h2 class="h5 card-title">For Officers & Institutions</h2>
+                    <p class="card-text flex-grow-1">
+                        Monitor disease reports and access agricultural data for research and advisory work.
+                    </p>
+                    <a href="{{ url_for('register') }}" class="btn btn-sm btn-outline-success">
+                        Register
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Quick city links (helps SEO and local searches) -->
 <div class="container my-5">
     <div class="row">
-        <div class="col-md-3 text-center mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <i class="fas fa-user-tie fa-3x text-success mb-3" aria-hidden="true"></i>
-                    <h3 class="h5 card-title">Farmers</h3>
-                    <p class="card-text">Detect plant diseases, get weather recommendations, and find nearby agrovets.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 text-center mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <i class="fas fa-store fa-3x text-success mb-3" aria-hidden="true"></i>
-                    <h3 class="h5 card-title">Agrovets</h3>
-                    <p class="card-text">Manage inventory, run POS system, and maintain customer relationships.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 text-center mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <i class="fas fa-user-shield fa-3x text-success mb-3" aria-hidden="true"></i>
-                    <h3 class="h5 card-title">Extension Officers</h3>
-                    <p class="card-text">Monitor disease outbreaks and provide advisory services to farmers.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 text-center mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <i class="fas fa-graduation-cap fa-3x text-success mb-3" aria-hidden="true"></i>
-                    <h3 class="h5 card-title">Learning Institutions</h3>
-                    <p class="card-text">Access educational resources and agricultural research data.</p>
-                </div>
-            </div>
+        <div class="col-lg-10 mx-auto text-center">
+            <h2 class="h5 mb-3">Find Agrovets by City</h2>
+            <p class="mb-3">
+                <a href="{{ url_for('agrovets_nairobi') }}" class="btn btn-sm btn-outline-secondary me-2 mb-2">Nairobi</a>
+                <!-- Add more city links here as you create the pages -->
+            </p>
+            <a href="{{ url_for('agrovets_index') }}" class="small">See all locations →</a>
         </div>
     </div>
 </div>
+
+<!-- Footer note about free scans (trust signal) -->
+<div class="container mb-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+            <p class="text-muted small">
+                Adiseware offers your first 3 disease scans free. After that, each scan costs KES 10 via M-PESA.
+                <a href="{{ url_for('ai_crop_disease_detection') }}#faq">Read the FAQ</a>.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Structured data for search engines -->
 <script type="application/ld+json">
 {{ {
   "@context": "https://schema.org",
