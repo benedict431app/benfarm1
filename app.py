@@ -747,7 +747,10 @@ def pos_checkout():
         'sale_id': sale.id
     })
 
-
+@app.route('/ads.txt')
+def ads_txt():
+    return send_from_directory(app.static_folder, 'ads.txt', mimetype='text/plain')
+    
 @app.route('/agrovet/crm')
 @login_required
 def agrovet_crm():
